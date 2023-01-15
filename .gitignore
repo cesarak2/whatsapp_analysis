@@ -1,4 +1,6 @@
-*.txt #the original file to be analyzed is in .txt
+# the original file to be analyzed is in .txt
+*.txt 
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

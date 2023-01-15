@@ -10,6 +10,8 @@ import os
 import nltk
 nltk.download('punkt')
 nltk.download('popular')
+from nltk.corpus import stopwords
+from collections import Counter
 
 def get_data():
     """Return content from the chat history file"""
@@ -93,11 +95,33 @@ chat.groupby('person').hist()
 # = = = = = = = = = = = = = = = = = = = = = = = = 
 #                    BIGRAMS                    #
 # = = = = = = = = = = = = = = = = = = = = = = = = 
-word_data = "The best performance can bring in sky high success."
-nltk_tokens = nltk.word_tokenize(word_data)
-print(list(nltk.bigrams(nltk_tokens)))
+stop_words = set(stopwords.words('portuguese'))
+aditional_stop_words = ['this', 'message', 'was', 'vc', 'vcs',
+                        'vote', 'votes', 'q', 'é', 'pra', 'image',
+                        'omitted', 'audio', 'sticker', 'gif', 'deleted']
+stop_words.update(aditional_stop_words)
+#chat['message'].apply(lambda row: word for word in row if not word.lower() in stop_words) 
+chat['tokenized'] = chat['message'].apply(lambda row: row.lower().split())
 
-chat['bigrams'] = chat['message'].apply(lambda row: list(nltk.bigrams(row.split(' '))))
+chat['tokenized'].apply(lambda row: row if not row in stop_words else '')
+chat['tokenized'].apply(lambda row: row[0])
+
+chat['message_no_stop_words'] = chat['message'].apply(lambda x: ' '.join([word.lower() for word in x.split() if word not in (stop_words)]))
+
+#filtered_sentence = [w for w in word_tokens if not w.lower() in stop_words]
+
+chat['bigrams'] = chat['message_no_stop_words'].apply(lambda row: list(nltk.bigrams(row.split(' '))))
+chat['trigrams'] = chat['message_no_stop_words'].apply(lambda row: list(nltk.trigrams(row.split(' '))))
+
+# BIGRAMS PER PERSON
+total_bigrams = chat['bigrams'].to_numpy()
+bigram_flat_list = [item for sublist in total_bigrams for item in sublist]
+
+#total_bigrams[55]
+counted_bigrams = Counter(bigram_flat_list)
+sorted(counted_bigrams.items(), key=lambda pair: pair[1], reverse = True)
+
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = 
 #                CHAT ENGAGEMENT                #
@@ -207,3 +231,5 @@ special_messages_df.apply(lambda row: label_special_phrase(row), axis = 1)
 # = = = = = = = = = = = = = = = = = = = = = = = = 
 # Bigrams:
 # https://stackoverflow.com/questions/54694038/forming-bigrams-of-words-in-a-pandas-dataframe
+# Flatten lists
+# https://stackoverflow.com/questions/952914/how-do-i-make-a-flat-list-out-of-a-list-of-lists
