@@ -12,6 +12,7 @@ nltk.download('punkt')
 nltk.download('popular')
 from nltk.corpus import stopwords
 from collections import Counter
+from nltk.util import ngrams
 
 def get_data():
     """Return content from the chat history file"""
@@ -95,31 +96,66 @@ chat.groupby('person').hist()
 # = = = = = = = = = = = = = = = = = = = = = = = = 
 #                    BIGRAMS                    #
 # = = = = = = = = = = = = = = = = = = = = = = = = 
-stop_words = set(stopwords.words('portuguese'))
-aditional_stop_words = ['this', 'message', 'was', 'vc', 'vcs',
+
+def get_ngrams(df, text_column, bigram_size=2, language='portuguese'):
+    '''
+    given a df, removes stop words for a given language and returns the bigrams.
+    inputs: dataframe, the column containing the raw text, the bigram size, the stop words language. 
+    outputs: a counter with the words and their counts.
+    '''
+    stop_words = set(stopwords.words('portuguese'))
+    if language == 'portuguese':
+        aditional_stop_words = ['this', 'deleted', 'message', 'was', 'vc', 'vcs',
                         'vote', 'votes', 'q', 'é', 'pra', 'image',
-                        'omitted', 'audio', 'sticker', 'gif', 'deleted']
+                        'omitted', 'audio', 'sticker', 'gif', 'deleted', '•',
+                        'nao', 'pq', 'eh', 'tá', 'pra', 'to']
+    stop_words.update(aditional_stop_words)
+    df['message_no_stop_words'] = df[text_column].apply(lambda x: ' '.join([word.lower() for word in x.lower().split() if word not in (stop_words)]))
+    df['most_used_words'] = df['message_no_stop_words'].apply(lambda row: list(nltk.ngrams(row.split(' '),bigram_size)))
+    total_bigrams = df['most_used_words'].to_numpy()
+    bigram_flat_list = [item for sublist in total_bigrams for item in sublist]
+    counted_bigrams = Counter(bigram_flat_list)
+    return counted_bigrams.most_common(20)
+
+get_ngrams(df = chat, text_column = 'message', bigram_size = 2, language = 'portuguese')
+
+'''
+# CONVERTED TO A FUNCTION ABOVE, TO BE REMOVE ON NEXT COMMIT
+stop_words = set(stopwords.words('portuguese'))
+aditional_stop_words = ['this', 'deleted', 'message', 'was', 'vc', 'vcs',
+                        'vote', 'votes', 'q', 'é', 'pra', 'image',
+                        'omitted', 'audio', 'sticker', 'gif', 'deleted', '•',
+                        'nao', 'pq', 'eh', 'tá', 'pra', 'to']
 stop_words.update(aditional_stop_words)
-#chat['message'].apply(lambda row: word for word in row if not word.lower() in stop_words) 
-chat['tokenized'] = chat['message'].apply(lambda row: row.lower().split())
 
-chat['tokenized'].apply(lambda row: row if not row in stop_words else '')
-chat['tokenized'].apply(lambda row: row[0])
+#chat['tokenized'] = chat['message'].apply(lambda row: row.lower().split())
+#chat['message_no_stop_words'] = 0
+chat['message_no_stop_words'] = chat['message'].apply(lambda x: ' '.join([word.lower() for word in x.lower().split() if word not in (stop_words)]))
 
-chat['message_no_stop_words'] = chat['message'].apply(lambda x: ' '.join([word.lower() for word in x.split() if word not in (stop_words)]))
 
-#filtered_sentence = [w for w in word_tokens if not w.lower() in stop_words]
+#chat['message_no_stop_words'][180:182]
+#chat['message'][180:190]
 
+
+chat['most_used_words'] = chat['message_no_stop_words'].apply(lambda row: list(nltk.ngrams(row.split(' '),1)))
 chat['bigrams'] = chat['message_no_stop_words'].apply(lambda row: list(nltk.bigrams(row.split(' '))))
 chat['trigrams'] = chat['message_no_stop_words'].apply(lambda row: list(nltk.trigrams(row.split(' '))))
+chat['4grams'] = chat['message_no_stop_words'].apply(lambda row: list(nltk.ngrams(row.split(' '),4)))
+chat['5grams'] = chat['message_no_stop_words'].apply(lambda row: list(nltk.ngrams(row.split(' '),5)))
 
 # BIGRAMS PER PERSON
+total_bigrams = chat['most_used_words'].to_numpy()
 total_bigrams = chat['bigrams'].to_numpy()
-bigram_flat_list = [item for sublist in total_bigrams for item in sublist]
+total_bigrams = chat['trigrams'].to_numpy()
+total_bigrams = chat['4grams'].to_numpy()
+total_bigrams = chat['5grams'].to_numpy()
 
 #total_bigrams[55]
+bigram_flat_list = [item for sublist in total_bigrams for item in sublist]
 counted_bigrams = Counter(bigram_flat_list)
-sorted(counted_bigrams.items(), key=lambda pair: pair[1], reverse = True)
+counted_bigrams.most_common(20)
+#sorted(counted_bigrams.items(), key=lambda pair: pair[1], reverse = True)
+'''
 
 
 
@@ -127,6 +163,7 @@ sorted(counted_bigrams.items(), key=lambda pair: pair[1], reverse = True)
 #                CHAT ENGAGEMENT                #
 # = = = = = = = = = = = = = = = = = = = = = = = = 
 # https://plotly.com/python/network-graphs/
+
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = 
