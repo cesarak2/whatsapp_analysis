@@ -94,7 +94,7 @@ chat.groupby('person').hist()
 
 #chat['message_length'].hist(by=chat['person'])
 # = = = = = = = = = = = = = = = = = = = = = = = = 
-#                    BIGRAMS                    #
+#                    N-GRAMS                    #
 # = = = = = = = = = = = = = = = = = = = = = = = = 
 
 def get_ngrams(df, text_column, bigram_size=2, language='portuguese'):
@@ -103,13 +103,15 @@ def get_ngrams(df, text_column, bigram_size=2, language='portuguese'):
     inputs: dataframe, the column containing the raw text, the bigram size, the stop words language. 
     outputs: a counter with the words and their counts.
     '''
-    stop_words = set(stopwords.words('portuguese'))
-    if language == 'portuguese':
-        aditional_stop_words = ['this', 'deleted', 'message', 'was', 'vc', 'vcs',
-                        'vote', 'votes', 'q', 'é', 'pra', 'image',
-                        'omitted', 'audio', 'sticker', 'gif', 'deleted', '•',
-                        'nao', 'pq', 'eh', 'tá', 'pra', 'to']
-    stop_words.update(aditional_stop_words)
+    stop_words = set(stopwords.words(language))
+    stop_words.update(['this', 'deleted', 'message', 'was', '•', 
+                       'omitted', 'audio', 'sticker', 'gif', 'deleted',
+                       'vote)', 'votes)', 'to']) # words used by Whatsapp regarding media sent
+    if language == 'portuguese': # the main group analysis was made on a pt speaking chat
+        aditional_stop_words = ['vc', 'vcs', 'vote', 'votes', 'q',
+                                'é', 'pra', 'image', 'n',
+                                'nao', 'pq', 'eh', 'tá', 'pra']
+        stop_words.update(aditional_stop_words)
     df['message_no_stop_words'] = df[text_column].apply(lambda x: ' '.join([word.lower() for word in x.lower().split() if word not in (stop_words)]))
     df['most_used_words'] = df['message_no_stop_words'].apply(lambda row: list(nltk.ngrams(row.split(' '),bigram_size)))
     total_bigrams = df['most_used_words'].to_numpy()
@@ -117,60 +119,120 @@ def get_ngrams(df, text_column, bigram_size=2, language='portuguese'):
     counted_bigrams = Counter(bigram_flat_list)
     return counted_bigrams.most_common(20)
 
+get_ngrams(df = chat, text_column = 'message', bigram_size = 1, language = 'portuguese')
 get_ngrams(df = chat, text_column = 'message', bigram_size = 2, language = 'portuguese')
+get_ngrams(df = chat, text_column = 'message', bigram_size = 3, language = 'portuguese')
 
-'''
-# CONVERTED TO A FUNCTION ABOVE, TO BE REMOVE ON NEXT COMMIT
-stop_words = set(stopwords.words('portuguese'))
-aditional_stop_words = ['this', 'deleted', 'message', 'was', 'vc', 'vcs',
-                        'vote', 'votes', 'q', 'é', 'pra', 'image',
-                        'omitted', 'audio', 'sticker', 'gif', 'deleted', '•',
-                        'nao', 'pq', 'eh', 'tá', 'pra', 'to']
-stop_words.update(aditional_stop_words)
-
-#chat['tokenized'] = chat['message'].apply(lambda row: row.lower().split())
-#chat['message_no_stop_words'] = 0
-chat['message_no_stop_words'] = chat['message'].apply(lambda x: ' '.join([word.lower() for word in x.lower().split() if word not in (stop_words)]))
-
-
-#chat['message_no_stop_words'][180:182]
-#chat['message'][180:190]
-
-
-chat['most_used_words'] = chat['message_no_stop_words'].apply(lambda row: list(nltk.ngrams(row.split(' '),1)))
-chat['bigrams'] = chat['message_no_stop_words'].apply(lambda row: list(nltk.bigrams(row.split(' '))))
-chat['trigrams'] = chat['message_no_stop_words'].apply(lambda row: list(nltk.trigrams(row.split(' '))))
-chat['4grams'] = chat['message_no_stop_words'].apply(lambda row: list(nltk.ngrams(row.split(' '),4)))
-chat['5grams'] = chat['message_no_stop_words'].apply(lambda row: list(nltk.ngrams(row.split(' '),5)))
-
-# BIGRAMS PER PERSON
-total_bigrams = chat['most_used_words'].to_numpy()
-total_bigrams = chat['bigrams'].to_numpy()
-total_bigrams = chat['trigrams'].to_numpy()
-total_bigrams = chat['4grams'].to_numpy()
-total_bigrams = chat['5grams'].to_numpy()
-
-#total_bigrams[55]
-bigram_flat_list = [item for sublist in total_bigrams for item in sublist]
-counted_bigrams = Counter(bigram_flat_list)
-counted_bigrams.most_common(20)
-#sorted(counted_bigrams.items(), key=lambda pair: pair[1], reverse = True)
-'''
-
-
+get_ngrams(df = chat, text_column = 'message', bigram_size = 1, language = 'english')
 
 # = = = = = = = = = = = = = = = = = = = = = = = = 
 #                CHAT ENGAGEMENT                #
 # = = = = = = = = = = = = = = = = = = = = = = = = 
 # https://plotly.com/python/network-graphs/
 
+# Each timestamp will 
+
+# SUPPOSITIONS:
+#   – people that ta
+#   – chat is definied by 
+
+group_users
+len(group_users)
 
 
+def score_by_time(x, a=0.42, b=30):
+    '''
+    calculates y = (a*e)^(b-x)
+    Used to calculate the score for a given delta time
+    '''
+    return (a*np.e)**-(x-b)
+
+def time_by_score(y, a=0.42, b=30):
+    '''
+    Solves y = (a*e)^(b-x) for x
+    Used to calculate what is the delta time for a given score
+    Std values have appr.: initial value=50, half life=5min, 30min to reach score=1
+    '''
+    if y <= 0 or y > 1E19: # in case the delta is miscalculated
+        return 0
+    result = (b+b*np.log(a)-np.log(y))/(1+np.log(a))
+    
+    if type(result) is np.float64:
+        return result
+    else: # just a big number
+        return 4E2 # just a big number
+
+#time_by_score(50)
+#score_by_time(-4.756150318632312)
+
+score_by_time(31)
+time_by_score(26.62460500158606)
+
+53.24921000317212/2
+
+# creates deltatime in min (converted from s for precision) to be used to calculate score
+points_conversation_df = chat[['datetime', 'person']] # new df is created, not copied
+points_conversation_df['delta_time'] = points_conversation_df['datetime'].diff().\
+                                                    astype('timedelta64[s]')/60
+#score_by_time(points_conversation_df.delta_time.iloc[10]) #testing calculating score
+#points_conversation_df['Giordano Jobim'] = np.where(points_conversation_df['person'] == 'Giordano Jobim', score_by_time(0),'')
+#points_conversation_df.loc[:,'Giordano Jobim'] = np.where(points_conversation_df['person'] == 'Giordano Jobim', 30,'')
+
+# draft to create columns
+# create a column per person, and if that row represents that person talking, assign a high score, otherwise a low score.
+for person in group_users:
+    points_conversation_df.loc[:,person] = np.where(points_conversation_df['person'] == person, score_by_time(0),0.1)
+
+# the score decreases with time by an exponential factor, based on last time that person spoke
+# calculates the score by deltatime for all rows. 
+points_conversation_df.apply(lambda row: score_by_time(row['delta_time']) if True else 0, axis=1)
+
+
+def get_index_of_first_message(target_person, df):
+    '''
+    returns an int with the first message index a certain person sent
+    inputs: a person's name to search in the df and the df containing the column named "person"
+    output: index as int
+    '''
+    try: # finds the first occurance of a message send by that person
+        first_index_person = df[df.person == target_person].index[0] 
+    except IndexError:
+        first_index_person = 0 #if the person never had spoken, return 0
+    return first_index_person
+
+
+
+for current_person in group_users:
+    index_first_message = get_index_of_first_message(target_person=current_person, df=points_conversation_df)
+    print(f'current_person={current_person}, index_first_message={index_first_message}')
+    if index_first_message == 0: # if the person never sent a message, ignore them
+        break
+    for i in range(index_first_message, len(points_conversation_df)): # from the person's 1st message until the end
+        if points_conversation_df.person.iloc[i] == current_person:  
+            pass # high score when person speaks was already defined
+        else: # a different person is talking
+                # converts the score to time, adds that to the time delta to the last message and converts back to score
+            points_conversation_df[current_person].iloc[i] = score_by_time( #transforms back in score
+                                                                           time_by_score(points_conversation_df[current_person].iloc[i-1])\
+                                                                           + points_conversation_df.delta_time.iloc[i]) # both are times
+# points_conversation_df
+
+
+#points_conversation_df.to_csv('points_conversation_df.csv')
+#help(get_index_of_first_message
+plt.plot(points_conversation_df.delta_time)
+min(points_conversation_df.delta_time)
+max
+(points_conversation_df.delta_time)
+8000
 # = = = = = = = = = = = = = = = = = = = = = = = = 
 #                     FFT                       #
 # = = = = = = = = = = = = = = = = = = = = = = = = 
 
-
+nums = [1,13,5,17]
+for i, value in enumerate(nums):
+    print(value)
+    print(i)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = 
 #                    CHARTS                     #
