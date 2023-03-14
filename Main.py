@@ -13,6 +13,8 @@ nltk.download('popular')
 from nltk.corpus import stopwords
 from collections import Counter
 from nltk.util import ngrams
+import plotly.express as px
+import scipy.fft
 
 def get_data():
     """Return content from the chat history file"""
@@ -165,7 +167,7 @@ def time_by_score(y, a=0.42, b=30):
 #time_by_score(50)
 #score_by_time(-4.756150318632312)
 
-score_by_time(31)
+score_by_time(0.5)
 time_by_score(26.62460500158606)
 
 53.24921000317212/2
@@ -218,21 +220,36 @@ for current_person in group_users:
 # points_conversation_df
 
 
+
+# matrix is the groupby person
+score_heatmap_df = points_conversation_df.groupby('person').sum().drop('delta_time', axis=1)
+score_heatmap_df = score_heatmap_df.reindex(sorted(score_heatmap_df.columns), axis=1) #reorder alphabetically
+
+for i in range(0,len(score_heatmap_df)): #because the rows order match the columns order
+    score_heatmap_df.iloc[i,i] = '' #erase the person self score
+
+#plotly chart
+fig = px.imshow(score_heatmap_df,
+                labels=dict(x="Engager person", y="Speaker person", color="Total Score"))
+fig.update_xaxes(side="top", tickangle=55)
+fig.show()
+# # # # # 
+
+
 #points_conversation_df.to_csv('points_conversation_df.csv')
 #help(get_index_of_first_message
 plt.plot(points_conversation_df.delta_time)
-min(points_conversation_df.delta_time)
-max
-(points_conversation_df.delta_time)
-8000
+
 # = = = = = = = = = = = = = = = = = = = = = = = = 
 #                     FFT                       #
 # = = = = = = = = = = = = = = = = = = = = = = = = 
-
-nums = [1,13,5,17]
-for i, value in enumerate(nums):
-    print(value)
-    print(i)
+np.array(points_conversation_df.delta_time[5:])
+delta_time_array = np.array(points_conversation_df.delta_time[5:])# / np.timedelta64(1,'s'))
+fft = scipy.fft.fft(delta_time_array)
+plt.plot(np.abs(fft))
+plt.ylim(0,300000)
+plt.title('FFT per timedelta')
+plt.show() # no valid frequency exists, hence this method can't be applied.
 
 # = = = = = = = = = = = = = = = = = = = = = = = = 
 #                    CHARTS                     #
