@@ -239,17 +239,26 @@ fig.show()
 #points_conversation_df.to_csv('points_conversation_df.csv')
 #help(get_index_of_first_message
 plt.plot(points_conversation_df.delta_time)
-
 # = = = = = = = = = = = = = = = = = = = = = = = = 
 #                     FFT                       #
 # = = = = = = = = = = = = = = = = = = = = = = = = 
 np.array(points_conversation_df.delta_time[5:])
-delta_time_array = np.array(points_conversation_df.delta_time[5:])# / np.timedelta64(1,'s'))
-fft = scipy.fft.fft(delta_time_array)
-plt.plot(np.abs(fft))
-plt.ylim(0,300000)
-plt.title('FFT per timedelta')
-plt.show() # no valid frequency exists, hence this method can't be applied.
+delta_time_array = np.array(points_conversation_df.delta_time[5:])
+intervals = delta_time_array.astype('timedelta64[s]').astype('float')
+# Calculate the frequencies corresponding to each FFT coefficient
+freq_domain = scipy.fft.fft(delta_time_array)
+n = len(delta_time_array)
+sampling_rate = 1  # 1 message per time interval (since we use intervals as input)
+freqs = np.fft.fftfreq(n, d=1/sampling_rate)
+
+# Plot the results
+plt.plot(freqs[:n//2], np.abs(freq_domain)[:n//2])
+plt.xlabel("Frequency (messages per second)")
+plt.ylabel("Amplitude")
+plt.title("Frequency Domain Representation of Chat Messages")
+plt.show()
+# no valid frequency exists, hence this method can't be applied.
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = 
 #                    CHARTS                     #
